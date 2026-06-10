@@ -3,25 +3,17 @@
 import {
   Activity, ArrowUpRight, BarChart3, Bell, CalendarDays, Check,
   ChevronDown, CircleDollarSign, Clock3, Filter, Handshake, HelpCircle,
-  Inbox, LayoutDashboard, ListFilter, Menu,
-  MoreHorizontal, Plus, Search, Settings, Sparkles, Target, Users, X,
+  Inbox, LayoutDashboard, ListFilter, LogOut, Menu,
+  MoreHorizontal, Plus, Search, Settings, Sparkles, Target, Trash2, Users, X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 type Deal = {
-  id: number; company: string; contact: string; value: number; stage: string;
+  id: string; company: string; contact: string; value: number; stage: string;
   avatar: string; color: string; due: string; activity: string;
 };
-
-const initialDeals: Deal[] = [
-  { id: 1, company: "Northstar Labs", contact: "Maya Chen", value: 48000, stage: "Qualified", avatar: "MC", color: "violet", due: "Jun 12", activity: "Email opened 2h ago" },
-  { id: 2, company: "Oak & Co.", contact: "Jon Bell", value: 18500, stage: "Qualified", avatar: "JB", color: "amber", due: "Jun 14", activity: "Call logged yesterday" },
-  { id: 3, company: "Papertrail", contact: "Nina Shah", value: 32000, stage: "Proposal", avatar: "NS", color: "rose", due: "Jun 11", activity: "Quote viewed 38m ago" },
-  { id: 4, company: "Mode Systems", contact: "Theo Grant", value: 76000, stage: "Proposal", avatar: "TG", color: "blue", due: "Jun 16", activity: "Meeting booked" },
-  { id: 5, company: "Kanso Studio", contact: "Liv Morgan", value: 24500, stage: "Negotiation", avatar: "LM", color: "green", due: "Today", activity: "Replied 12m ago" },
-  { id: 6, company: "Juniper Health", contact: "Omar Reed", value: 92000, stage: "Negotiation", avatar: "OR", color: "cyan", due: "Jun 13", activity: "Legal review pending" },
-  { id: 7, company: "Arcworks", contact: "Sam Kim", value: 41000, stage: "Closing", avatar: "SK", color: "indigo", due: "Today", activity: "Contract sent 1h ago" },
-];
 
 const stages = [
   { name: "Qualified", tone: "lavender" },
@@ -43,12 +35,69 @@ const navItems = [
 ];
 
 export default function Home() {
-  const [deals, setDeals] = useState(initialDeals);
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState("Pipeline");
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [toast, setToast] = useState("");
+
+  useEffect(() => {
+    if (status === "unauthenticated") router.push("/login");
+  }, [status, router]);
+
+  useEffect(() => {
+    fetch("/api/deals")
+      .then((r) => r.json())
+      .then((data) => { setDeals(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  function showToast(msg: string) {
+    setToast(msg);
+    window.setTimeout(() => setToast(""), 3000);
+  }
+
+  async function addDeal(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const body = { company: form.get("company"), contact: form.get("contact"), value: form.get("value") };
+    const res = await fetch("/api/deals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return;
+    const deal = await res.json();
+    setDeals((current) => [...current, deal]);
+    setModalOpen(false);
+    showToast(`${deal.company} added to Qualified`);
+  }
+
+  async function advanceDeal(id: string) {
+    const deal = deals.find((d) => d.id === id);
+    if (!deal) return;
+    const index = stages.findIndex((s) => s.name === deal.stage);
+    const nextStage = stages[Math.min(index + 1, stages.length - 1)].name;
+    const res = await fetch(`/api/deals/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stage: nextStage }),
+    });
+    if (!res.ok) return;
+    const updated = await res.json();
+    setDeals((current) => current.map((d) => (d.id === id ? updated : d)));
+  }
+
+  async function deleteDeal(id: string) {
+    const res = await fetch(`/api/deals/${id}`, { method: "DELETE" });
+    if (!res.ok) return;
+    setDeals((current) => current.filter((d) => d.id !== id));
+    showToast("Deal deleted");
+  }
 
   const filtered = useMemo(() => deals.filter((deal) =>
     `${deal.company} ${deal.contact}`.toLowerCase().includes(query.toLowerCase())
@@ -56,28 +105,11 @@ export default function Home() {
 
   const total = deals.reduce((sum, deal) => sum + deal.value, 0);
 
-  function addDeal(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const company = String(form.get("company"));
-    const value = Number(form.get("value"));
-    setDeals((current) => [...current, {
-      id: Date.now(), company, contact: String(form.get("contact")), value,
-      stage: "Qualified", avatar: company.slice(0, 2).toUpperCase(), color: "violet",
-      due: "Jun 20", activity: "Deal created just now",
-    }]);
-    setModalOpen(false);
-    setToast(`${company} added to Qualified`);
-    window.setTimeout(() => setToast(""), 3000);
+  if (status === "loading" || loading) {
+    return <div className="app-shell"><div className="loading-screen"><Sparkles size={32} /><p>Loading your pipeline…</p></div></div>;
   }
 
-  function advanceDeal(id: number) {
-    setDeals((current) => current.map((deal) => {
-      if (deal.id !== id) return deal;
-      const index = stages.findIndex((stage) => stage.name === deal.stage);
-      return { ...deal, stage: stages[Math.min(index + 1, stages.length - 1)].name };
-    }));
-  }
+  if (status === "unauthenticated") return null;
 
   return (
     <div className="app-shell">
@@ -101,18 +133,22 @@ export default function Home() {
           <button><CalendarDays size={19} /><span>Calendar</span></button>
         </nav>
         <div className="sidebar-bottom">
-          <div className="trial-card"><div><Sparkles size={17} /><strong>Free forever</strong></div><p>All your data, on your server.</p><button>View open-source repo <ArrowUpRight size={14} /></button></div>
+          <div className="trial-card"><div><Sparkles size={17} /><strong>Free forever</strong></div><p>All your data, on your server.</p></div>
           <button><Settings size={19} /><span>Settings</span></button>
           <button><HelpCircle size={19} /><span>Help center</span></button>
-          <div className="profile"><span className="avatar dark">JD</span><div><strong>Jamie Davis</strong><small>jamie@folkline.io</small></div><MoreHorizontal size={18} /></div>
+          <div className="profile">
+            <span className="avatar dark">{session?.user?.name?.slice(0, 2).toUpperCase() || "JD"}</span>
+            <div><strong>{session?.user?.name || "Jamie Davis"}</strong><small>{session?.user?.email || "jamie@folkline.io"}</small></div>
+            <button onClick={() => signOut()} title="Sign out"><LogOut size={18} /></button>
+          </div>
         </div>
       </aside>
 
       <main>
         <header className="topbar">
           <button className="mobile-menu" onClick={() => setMenuOpen(true)} aria-label="Open navigation"><Menu /></button>
-          <div className="global-search"><Search size={18} /><input aria-label="Search all records" placeholder="Search contacts, deals..." /><kbd>⌘ K</kbd></div>
-          <div className="top-actions"><button aria-label="Notifications" className="icon-button"><Bell size={19} /><i /></button><span className="avatar">JD</span></div>
+          <div className="global-search"><Search size={18} /><input aria-label="Search all records" placeholder="Search contacts, deals…" /><kbd>⌘ K</kbd></div>
+          <div className="top-actions"><button aria-label="Notifications" className="icon-button"><Bell size={19} /><i /></button><span className="avatar">{session?.user?.name?.slice(0, 2).toUpperCase() || "JD"}</span></div>
         </header>
 
         <div className="content">
@@ -151,7 +187,13 @@ export default function Home() {
                     <div className="column-body">
                       {stageDeals.map((deal) => (
                         <article className="deal-card" key={deal.id}>
-                          <div className="deal-top"><span className={`company-icon ${deal.color}`}>{deal.company.slice(0, 1)}</span><button aria-label={`More actions for ${deal.company}`}><MoreHorizontal size={18} /></button></div>
+                          <div className="deal-top">
+                            <span className={`company-icon ${deal.color}`}>{deal.company.slice(0, 1)}</span>
+                            <div className="deal-actions">
+                              <button onClick={() => deleteDeal(deal.id)} title="Delete deal"><Trash2 size={16} /></button>
+                              <button title="More options"><MoreHorizontal size={18} /></button>
+                            </div>
+                          </div>
                           <h2>{deal.company}</h2>
                           <p className="deal-value">{money(deal.value)}</p>
                           <div className="contact"><span className={`avatar ${deal.color}`}>{deal.avatar}</span><span>{deal.contact}</span></div>

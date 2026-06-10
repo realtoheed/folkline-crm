@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import SessionProvider from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
   title: "Folkline CRM",
@@ -9,7 +10,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <SessionProvider>{children}</SessionProvider>
+      </body>
     </html>
   );
 }

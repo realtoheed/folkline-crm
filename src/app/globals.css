@@ -122,3 +122,64 @@ h1 { font-size: 27px; line-height: 1.15; letter-spacing: -.04em; margin: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+.login-page {
+  min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--canvas);
+}
+.login-card {
+  width: 360px; background: white; border: 1px solid var(--line); border-radius: 16px; padding: 36px 28px 28px; box-shadow: 0 12px 36px rgba(12,25,18,.06);
+}
+.login-brand {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 28px; font-size: 18px; font-weight: 720; color: var(--ink);
+}
+.login-brand .brand-mark {
+  width: 28px; height: 28px; font-size: 13px;
+}
+.login-card h1 {
+  font-size: 22px; margin: 0 0 4px;
+}
+.login-sub {
+  color: var(--muted); font-size: 12px; margin: 0 0 20px;
+}
+.login-error {
+  background: #fef0ee; color: #b05749; font-size: 11px; padding: 10px 13px; border-radius: 8px; margin: 0 0 16px;
+}
+.login-card form {
+  display: grid; gap: 14px;
+}
+.login-card label {
+  display: grid; gap: 5px; font-size: 11px; color: #4f5c54; font-weight: 680;
+}
+.login-card input {
+  height: 42px; border: 1px solid #d9dfda; border-radius: 9px; padding: 0 12px; outline: 0; color: var(--ink);
+}
+.login-card input:focus {
+  border-color: #6d8e7d; box-shadow: 0 0 0 3px rgba(72,105,88,.1);
+}
+.login-card .primary {
+  min-height: 44px; margin-top: 4px;
+}
+.switch-mode {
+  text-align: center; margin: 18px 0 0; font-size: 11px; color: var(--muted);
+}
+.switch-mode button {
+  border: 0; background: none; color: var(--brand); font-weight: 680; padding: 0; font-size: 11px;
+}
+.switch-mode button:hover {
+  text-decoration: underline;
+}
+.loading-screen {
+  grid-column: 1 / -1; display: grid; place-items: center; min-height: 100vh; align-content: center; gap: 12px; color: var(--muted);
+}
+.deal-actions {
+  display: flex; align-items: center; gap: 2px;
+}
+.deal-actions button:hover {
+  color: #d45a4a !important;
+}
+.profile button {
+  border: 0; background: transparent; color: #8a9d93; padding: 5px; border-radius: 6px; cursor: pointer;
+}
+.profile button:hover {
+  color: #d47a6a; background: #21322b;
+}

@@ -9,7 +9,8 @@
 /build
 
 # local environment files
-.env*
+.env
+.env*.local
 
 # logs
 npm-debug.log*
@@ -24,3 +25,9 @@ pnpm-debug.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# SQLite database
+*.db
+*.db-journal
